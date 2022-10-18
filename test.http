@@ -6,5 +6,18 @@ Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU
 	"jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-03-01",
 	"startAt": 0,
 	"maxResults": 10,
-    "fieldsByKeys": false
+    "fieldsByKeys": false,
+    "expand": [
+        "names"
+        
+    ]
 }
+
+// possible expand
+//"operations",
+//"changelog",
+//"schema"
+//editmeta 
+//versionedRepresentations 
+//transitions 
+//renderedFields 

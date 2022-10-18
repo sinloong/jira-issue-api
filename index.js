@@ -22,52 +22,108 @@ const checkStatus = (response) => {
   }
 };
 
-const exportCSV = (histories) => {
-  const items = [];
+const fields = [
+  { id: "fields.summary", title: "Summary" },
+  { id: "key", title: "Issue Key" },
+  { id: "id", title: "Issue ID" },
+  { id: "fields.issuetype.name", title: "Issue Type" },
+  { id: "fields.status.name", title: "Status" },
+  { id: "fields.project.key", title: "Project Key" },
+  { id: "fields.project.name", title: "Project Name" },
+  { id: "fields.priority.name", title: "Priority" },
+  { id: "fields.resolution.name", title: "Resolution" },
+  { id: "fields.assignee.displayName", title: "Assignee" },
+  { id: "fields.assignee.accountId", title: "Assignee Id" },
+  { id: "fields.reporter.displayName", title: "Reporter" },
+  { id: "fields.reporter.accountId", title: "Reporter Id" },
+  { id: "fields.creator.displayName", title: "Creator" },
+  { id: "fields.creator.accountId", title: "Creator Id" },
+  { id: "fields.created", title: "Created" },
+  { id: "fields.updated", title: "Updated" },
+  { id: "fields.lastViewed", title: "Last Viewed" },
+  { id: "fields.resolutiondate", title: "Resolved" },
+  { id: "fields.duedate", title: "Due Date" },
+  { id: "fields.votes.votes", title: "Votes" },
+  { id: "fields.description", title: "Description" },
+  { id: "fields.parent.id", title: "Parent ID" },
+];
 
-  histories.forEach((history) => {
+const getFieldValue = (issue, fieldName) => {
+  const splitFieldName = fieldName.split(".");
+  let returnValue;
+  try {
+    if (splitFieldName.length == 1) {
+      returnValue = issue[splitFieldName[0]];
+    } else if (splitFieldName.length == 2) {
+      returnValue = issue[splitFieldName[0]][splitFieldName[1]];
+    } else if (splitFieldName.length == 3) {
+      returnValue = issue[splitFieldName[0]][splitFieldName[1]][splitFieldName[2]];
+    }
+
+    if (fieldName === "fields.description" && returnValue) {
+      returnValue = getDescription(returnValue).join("\r\n");
+    }
+  } catch (e) {
+    console.log("Failed to get " + fieldName + " field");
+  }
+  return returnValue;
+};
+
+//convert description json into text string only
+const getDescription = (obj) => {
+  let textArray = [];
+  Object.keys(obj).forEach(key => {
+
+      //console.log(`key: ${key}, value: ${obj[key]}`)
+      
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+          const temp = getDescription(obj[key])
+          if (temp.length > 0) textArray = textArray.concat(temp)
+      }
+
+      if (key === "text") {
+          textArray.push(obj[key])
+      } 
+      //console.log(textArray)
+  })
+  return textArray
+}
+
+const exportCSV = (searchResult) => {
+  const names = searchResult.names;
+  const issuesData = searchResult.issues;
+  const issues = [];
+
+  issuesData.forEach((issue) => {
     //console.log(history.author.displayName);
-
-    history.items.forEach((item) => {
-      items.push({
-        id: history.id,
-        author: history.author.displayName,
-        field: item.field,
-        fromString: item.fromString,
-        toString: item.toString,
-        created: history.created,
-      });
+    let newIssue = {};
+    fields.forEach((field) => {
+      newIssue[field.id] = getFieldValue(issue, field.id);
     });
+    issues.push(newIssue);
   });
 
   csv
-    .writeRecords(items) // returns a promise
+    .writeRecords(issues) // returns a promise
     .then(() => {
       console.log("...Done");
     });
   //console.log(output);
 };
 
-const createCSV = csvWriter.createObjectCsvWriter;
-const csv = createCSV({
-  path: "demoD.csv",
-  header: [
-    { id: "id", title: "ID" },
-    { id: "author", title: "Author" },
-    { id: "field", title: "Field" },
-    { id: "fromString", title: "FromString" },
-    { id: "toString", title: "ToString" },
-    { id: "created", title: "Created" },
-  ],
+const csv = csvWriter.createObjectCsvWriter({
+  path: "output/demoD.csv",
+  header: fields
 });
 
 const bodyData = `{
     "expand": [
         "names",
         "schema",
-        "operations"
+        "operations",
+        "changelog"
     ],
-    "jql": "project = igloohome-2022",
+    "jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01",
     "maxResults": 15,
     "fieldsByKeys": false,
     "fields": [
@@ -92,8 +148,8 @@ const response = await fetch(
 
 try {
   checkStatus(response);
-  const histories = await response.json();
-  exportCSV(histories.values);
+  const searchResult = await response.json();
+  exportCSV(searchResult);
 } catch (error) {
   console.error(error);
 
