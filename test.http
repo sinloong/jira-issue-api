@@ -1,0 +1,10 @@
+POST https://iglooapp.atlassian.net/rest/api/3/search HTTP/1.1
+content-type: application/json
+Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU0MzJEQkY=
+
+{
+	"jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-03-01",
+	"startAt": 0,
+	"maxResults": 10,
+    "fieldsByKeys": false
+}
