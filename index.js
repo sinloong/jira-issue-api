@@ -26,10 +26,13 @@ const fields = [
   { id: "fields.summary", title: "Summary" },
   { id: "key", title: "Issue Key" },
   { id: "id", title: "Issue ID" },
+  { id: "fields.parent.id", title: "Parent ID" },
   { id: "fields.issuetype.name", title: "Issue Type" },
   { id: "fields.status.name", title: "Status" },
   { id: "fields.project.key", title: "Project Key" },
   { id: "fields.project.name", title: "Project Name" },
+  { id: "fields.project.projectTypeKey", title: "Project Type" },
+  { id: "fields.project.self", title: "Project URL" },
   { id: "fields.priority.name", title: "Priority" },
   { id: "fields.resolution.name", title: "Resolution" },
   { id: "fields.assignee.displayName", title: "Assignee" },
@@ -42,10 +45,20 @@ const fields = [
   { id: "fields.updated", title: "Updated" },
   { id: "fields.lastViewed", title: "Last Viewed" },
   { id: "fields.resolutiondate", title: "Resolved" },
+  { id: "fields.fixVersions", title: "Fix Versions" },
+  { id: "fields.components", title: "Components" },
   { id: "fields.duedate", title: "Due Date" },
   { id: "fields.votes.votes", title: "Votes" },
+  { id: "fields.labels", title: "Labels" },
   { id: "fields.description", title: "Description" },
-  { id: "fields.parent.id", title: "Parent ID" },
+  { id: "fields.timeoriginalestimate", title: "Original Estimate" },
+  { id: "fields.timeestimate", title: "Remaining Estimate" },
+  { id: "fields.timeestimate", title: "Remaining Estimate" },
+  { id: "fields.timespent", title: "Time Spent" },
+  { id: "fields.workratio", title: "Work Ratio" },
+  
+  
+  
 ];
 
 const getFieldValue = (issue, fieldName) => {
@@ -62,6 +75,14 @@ const getFieldValue = (issue, fieldName) => {
 
     if (fieldName === "fields.description" && returnValue) {
       returnValue = getDescription(returnValue).join("\r\n");
+    }
+    if ((fieldName === "fields.fixVersions" || fieldName === "fields.components")
+     && returnValue && returnValue.length > 0) {
+      returnValue = returnValue.map(v => v.name).join(",")
+    }
+    if ((fieldName === "fields.labels")
+     && returnValue && returnValue.length > 0) {
+      returnValue = returnValue.join(",")
     }
   } catch (e) {
     console.log("Failed to get " + fieldName + " field");
@@ -123,8 +144,8 @@ const bodyData = `{
         "operations",
         "changelog"
     ],
-    "jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01",
-    "maxResults": 15,
+    "jql": "project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
+    "maxResults": 1000,
     "fieldsByKeys": false,
     "fields": [
     ],

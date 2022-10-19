@@ -3,7 +3,7 @@ content-type: application/json
 Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU0MzJEQkY=
 
 {
-	"jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-03-01",
+	"jql": "project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
 	"startAt": 0,
 	"maxResults": 10,
     "fieldsByKeys": false,
