@@ -1,3 +1,4 @@
+### JQL Search
 POST https://iglooapp.atlassian.net/rest/api/3/search HTTP/1.1
 content-type: application/json
 Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU0MzJEQkY=
@@ -21,3 +22,26 @@ Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU
 //versionedRepresentations 
 //transitions 
 //renderedFields 
+
+### Get Ticket Change Log
+GET https://iglooapp.atlassian.net/rest/api/3/issue/IWD-3214/changelog HTTP/1.1
+content-type: application/json
+Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU0MzJEQkY=
+
+{
+
+}
+
+
+
+### Get Ticket Change Log by ID
+POST https://iglooapp.atlassian.net/rest/api/3/issue/DP-182/changelog/list HTTP/1.1
+content-type: application/json
+Authorization: Basic c2lubG9vbmcua29vQGlnbG9vaG9tZS5jbzpvWjVVTHJ2VVhBejNuS2VSTmU0MzJEQkY=
+Accept: application/json
+
+{
+  "changelogIds": [
+    182645
+  ]
+}
