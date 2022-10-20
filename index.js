@@ -2,6 +2,7 @@
 // https://www.npmjs.com/package/node-fetch
 import fetch from "node-fetch";
 import csvWriter from "csv-writer";
+import * as h from "./holiday.js";
 
 class HTTPResponseError extends Error {
   constructor(response, ...args) {
@@ -12,6 +13,8 @@ class HTTPResponseError extends Error {
     this.response = response;
   }
 }
+
+const holidays = await h.getHolidays("SG", 2020)
 
 const checkStatus = (response) => {
   if (response.ok) {
@@ -35,6 +38,7 @@ const fields = [
   { id: "fields.project.self", title: "Project URL" },
   { id: "fields.priority.name", title: "Priority" },
   { id: "fields.resolution.name", title: "Resolution" },
+  { id: "fields.country", title: "Country" },
   { id: "fields.assignee.displayName", title: "Assignee" },
   { id: "fields.assignee.accountId", title: "Assignee Id" },
   { id: "fields.reporter.displayName", title: "Reporter" },
@@ -46,6 +50,7 @@ const fields = [
   { id: "fields.lastViewed", title: "Last Viewed" },
   { id: "fields.resolutiondate", title: "Resolved" },
   { id: "fields.resolutiondatefromlastdone", title: "Resolved From Last Done" },
+  { id: "fields.timetoresolve", title: "Time to Resolve(Manday)" },
   { id: "fields.fixVersions", title: "Fix Versions" },
   { id: "fields.components", title: "Components" },
   { id: "fields.duedate", title: "Due Date" },
@@ -53,7 +58,6 @@ const fields = [
   { id: "fields.labels", title: "Labels" },
   { id: "fields.description", title: "Description" },
   { id: "fields.timeoriginalestimate", title: "Original Estimate" },
-  { id: "fields.timeestimate", title: "Remaining Estimate" },
   { id: "fields.timeestimate", title: "Remaining Estimate" },
   { id: "fields.timespent", title: "Time Spent" },
   { id: "fields.workratio", title: "Work Ratio" },
