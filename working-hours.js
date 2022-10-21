@@ -23,7 +23,7 @@ export async function getHolidays(country, year) {
 
 // Simple function that accepts two parameters and calculates
 // the number of hours worked within that range
-export async function getWorkingMandays(
+export async function getWorkingManDays(
   startDate,
   endDate,
   WorkhourStart,
