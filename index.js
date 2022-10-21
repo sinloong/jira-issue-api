@@ -3,6 +3,7 @@
 import fetch from "node-fetch";
 import csvWriter from "csv-writer";
 import * as wh from "./working-hours.js";
+import * as fs from "fs";
 
 class HTTPResponseError extends Error {
   constructor(response, ...args) {
@@ -61,6 +62,39 @@ const fields = [
   { id: "fields.workratio", title: "Work Ratio" },
 ];
 
+function CSVtoArray(text) {
+  var re_valid = /^\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*(?:,\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*)*$/;
+  var re_value = /(?!\s*$)\s*(?:'([^'\\]*(?:\\[\S\s][^'\\]*)*)'|"([^"\\]*(?:\\[\S\s][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
+  // Return NULL if input string is not well formed CSV string.
+  if (!re_valid.test(text)) return null;
+  var a = [];                     // Initialize array to receive values.
+  text.replace(re_value, // "Walk" the string using replace with callback.
+      function(m0, m1, m2, m3) {
+          // Remove backslash from \' in single quoted values.
+          if      (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
+          // Remove backslash from \" in double quoted values.
+          else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
+          else if (m3 !== undefined) a.push(m3);
+          return ''; // Return empty string.
+      });
+  // Handle special case of empty last value.
+  if (/,\s*$/.test(text)) a.push('');
+  return a;
+};
+
+const getUserCountryFromCSV = () => {
+  const csv = fs.readFileSync("./input/Assignee-Country-Dictionary.csv")
+  const rows = csv.toString().split("\r\n");
+  const users = {}
+
+  for (let i = 1; i < rows.length - 1; i++) {
+    const rowData = CSVtoArray(rows[i])
+    users[rowData[0]] = rowData[1]
+  }
+
+  return users;
+}
+
 const getFieldValue = (issue, fieldName) => {
   const splitFieldName = fieldName.split(".");
   let returnValue;
@@ -93,7 +127,7 @@ const getFieldValue = (issue, fieldName) => {
       returnValue = returnValue.join(",");
     }
   } catch (e) {
-    console.log("Failed to get " + fieldName + " field");
+    //console.log("Failed to get " + fieldName + " field");
   }
   return returnValue;
 };
@@ -183,7 +217,7 @@ const bodyData = `{
         "operations",
         "changelog"
     ],
-    "jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
+    "jql": "project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
     "maxResults": 100,
     "fieldsByKeys": false,
     "fields": [
@@ -208,7 +242,12 @@ try {
     console.log("Processing records -> " + index)
   } while (searchResult.issues.length > 0);
 
+  console.log(`Total Records: ${issues.length}`)
+
+  const userCountry = getUserCountryFromCSV();
+
   for (const issue of issues) {
+    //update resolution date from change log (Done Status) if the original resolution date is null
     if (issue["fields.status.name"] == "Done" && !issue["fields.resolutiondate"]) {
       issue["fields.resolutiondate"] = await fetchLastDoneStatusUpdateFromJiraChangeLog(issue["key"]);
       issue["fields.resolutiondatefromlastdone"] = "1"
@@ -224,9 +263,13 @@ try {
     }
 
     const mandays = (await wh.getWorkingMandays(startDate, endDate, 10, 13, 14, 19, holidays, true)).toFixed(2)
-    console.log(`Total ${mandays} maydays`)
+    //console.log(`Total ${mandays} maydays`)
     issue["fields.timetoresolve"] = mandays;
 
+    issue["fields.country"] = userCountry[issue["fields.assignee.displayName"]];
+    if (!issue["fields.country"]) {
+      issue["fields.country"] = userCountry[issue["fields.reporter.displayName"]];
+    }
   }
 
   const csv = csvWriter.createObjectCsvWriter({

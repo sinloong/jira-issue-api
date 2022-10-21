@@ -47,8 +47,8 @@ export async function getWorkingMandays(
   // Define work range
   const workHoursStart = WorkhourStart;
   const workHoursEnd = WorkhourEnd;
-  console.log("Start Date -> " + startDate)
-  console.log("End Date -> " + endDate)
+  //console.log("Start Date -> " + startDate)
+  //console.log("End Date -> " + endDate)
 
   // Loop while currentDate is less than end Date (by minutes)
   while (current <= endDate) {

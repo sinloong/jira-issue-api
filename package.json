@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "csv-writer": "^1.6.0",
+    "csvtojson": "^2.0.10",
     "date-holidays": "^3.16.7",
     "fs.promises": "^0.1.2",
     "node-fetch": "^3.2.10"
