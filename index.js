@@ -2,7 +2,7 @@
 // https://www.npmjs.com/package/node-fetch
 import fetch from "node-fetch";
 import csvWriter from "csv-writer";
-import * as h from "./holiday.js";
+import * as wh from "./working-hours.js";
 
 class HTTPResponseError extends Error {
   constructor(response, ...args) {
@@ -183,7 +183,7 @@ const bodyData = `{
         "operations",
         "changelog"
     ],
-    "jql": "key=I20-3370 AND project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
+    "jql": "project in (igloohome-2022) AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
     "maxResults": 100,
     "fieldsByKeys": false,
     "fields": [
@@ -220,12 +220,12 @@ try {
     let holidays = [];
 
     for (let i = startDate.getFullYear(); i <= endDate.getFullYear(); i++) {
-      holidays = holidays.concat(await h.getHolidays("SG", i));
+      holidays = holidays.concat(await wh.getHolidays("SG", i));
     }
 
-    const hours = await h.getWorkingHours(startDate, endDate, 10, 13, 14, 19, holidays, true)
-    console.log(hours)
-    issue["fields.timetoresolve"] = hours / 8;
+    const mandays = (await wh.getWorkingMandays(startDate, endDate, 10, 13, 14, 19, holidays, true)).toFixed(2)
+    console.log(`Total ${mandays} maydays`)
+    issue["fields.timetoresolve"] = mandays;
 
   }
 
