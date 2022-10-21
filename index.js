@@ -14,8 +14,6 @@ class HTTPResponseError extends Error {
   }
 }
 
-const holidays = await h.getHolidays("SG", 2020)
-
 const checkStatus = (response) => {
   if (response.ok) {
     // response.status >= 200 && response.status < 300
@@ -170,7 +168,7 @@ const fetchLastDoneStatusUpdateFromJiraChangeLog = async (issueKey) => {
   let lastStatusDoneUpdate = null;
   for (const history of histories.values) {
     for (const item of history.items) {
-      if (item.fieldId === "status" && item.to === "10001") {
+      if (item.fieldId === "status" && item.to === "10001") { //10001 = Done
         lastStatusDoneUpdate = history.created
       }
     }
@@ -185,7 +183,7 @@ const bodyData = `{
         "operations",
         "changelog"
     ],
-    "jql": "project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
+    "jql": "key=I20-3370 AND project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
     "maxResults": 100,
     "fieldsByKeys": false,
     "fields": [
@@ -215,6 +213,20 @@ try {
       issue["fields.resolutiondate"] = await fetchLastDoneStatusUpdateFromJiraChangeLog(issue["key"]);
       issue["fields.resolutiondatefromlastdone"] = "1"
     }
+
+    const startDate = new Date(issue["fields.created"]);
+    const endDate = new Date(issue["fields.resolutiondate"]);
+
+    let holidays = [];
+
+    for (let i = startDate.getFullYear(); i <= endDate.getFullYear(); i++) {
+      holidays = holidays.concat(await h.getHolidays("SG", i));
+    }
+
+    const hours = await h.getWorkingHours(startDate, endDate, 10, 13, 14, 19, holidays, true)
+    console.log(hours)
+    issue["fields.timetoresolve"] = hours / 8;
+
   }
 
   const csv = csvWriter.createObjectCsvWriter({
