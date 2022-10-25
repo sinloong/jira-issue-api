@@ -1,1 +1,5 @@
-node . <email> <api_key>
+```node . ```
+
+or 
+
+```node . <email> <api_key>```
