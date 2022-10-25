@@ -4,26 +4,7 @@ import csvWriter from "csv-writer";
 import { fetchIssues, fetchLastDoneStatusUpdateFromChangeLog, checkStatus } from "./lib/jira.js"
 import { getHolidays, getWorkingManDays } from "./lib/working-hours.js";
 import { getUserCountryFromCSV } from "./lib/user-country.js";
-import * as fs from "fs";
 import prompt from "prompt";
-
-const bodyData = `{
-  "expand": [
-      "names",
-      "schema",
-      "operations",
-      "changelog"
-  ],
-  "jql": "{{Jql}}",
-  "maxResults": 100,
-  "fieldsByKeys": false,
-  "fields": [
-  ],
-  "startAt": {{startAt}}
-}`;
-
-//"jql": "project in (igloohome-2022, iglooworks-2022, iDP, 'Igloohome Flutter', 'iglooworks App 2.0', 'iglooworks Dashboard 2.0', 'iglooworks app', 'iglooworks Dashboard', 'HW Product', 'CS Team Tool', 'CS Team Tool 2022', 'Bluetooth Mobile SDK', 'Aztech Bridge', 'IglooApp 2.0', iglooconnect-2022, Analytics, 'PRS App', 'PRS Admin App', 'Auto Test App') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
-//"jql": "project in ('iglooworks Dashboard') AND status in (Done, Resolved, Closed) AND createdDate >= 2022-01-01 AND createdDate < 2022-10-01 ORDER BY created DESC",
 
 const fields = [
   { id: "fields.summary", title: "Summary" },
@@ -62,11 +43,6 @@ const fields = [
   { id: "fields.timespent", title: "Time Spent" },
   { id: "fields.workratio", title: "Work Ratio" },
 ];
-
-const getJqlFromFile = () => {
-  const jql = fs.readFileSync("./input/jql.txt");
-  return jql.toString().replace(/(?:\r\n|\r|\n)/g, "");
-};
 
 const getFieldValue = (issue, fieldName) => {
   const splitFieldName = fieldName.split(".");
@@ -147,11 +123,11 @@ async function main(email, apiKey) {
     let searchResult = [];
 
     do {
-      const jql = getJqlFromFile();
+      
       const response = await fetchIssues(
         email,
         apiKey,
-        bodyData.replace("{{startAt}}", index).replace("{{Jql}}", jql)
+        index  //startAt
       );
       checkStatus(response);
       searchResult = await response.json();
