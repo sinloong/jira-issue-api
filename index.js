@@ -1,8 +1,8 @@
 // This code sample uses the 'node-fetch' library:
 // https://www.npmjs.com/package/node-fetch
-import fetch from "node-fetch";
 import csvWriter from "csv-writer";
-import * as wh from "./lib/working-hours.js";
+import { fetchIssues, fetchLastDoneStatusUpdateFromChangeLog, checkStatus } from "./lib/jira.js"
+import { getHolidays, getWorkingManDays } from "./lib/working-hours.js";
 import { getUserCountryFromCSV } from "./lib/user-country.js";
 import * as fs from "fs";
 import prompt from "prompt";
@@ -62,25 +62,6 @@ const fields = [
   { id: "fields.timespent", title: "Time Spent" },
   { id: "fields.workratio", title: "Work Ratio" },
 ];
-
-class HTTPResponseError extends Error {
-  constructor(response, ...args) {
-    super(
-      `HTTP Error Response: ${response.status} ${response.statusText}`,
-      ...args
-    );
-    this.response = response;
-  }
-}
-
-const checkStatus = (response) => {
-  if (response.ok) {
-    // response.status >= 200 && response.status < 300
-    return response;
-  } else {
-    throw new HTTPResponseError(response);
-  }
-};
 
 const getJqlFromFile = () => {
   const jql = fs.readFileSync("./input/jql.txt");
@@ -159,56 +140,6 @@ function mapIssuesFields(searchResult) {
   return issues;
 }
 
-const fetchIssuesFromJira = async (email, apiKey, jqlBodyData) => {
-  const response = await fetch(
-    "https://iglooapp.atlassian.net/rest/api/3/search",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(email + ":" + apiKey).toString(
-          "base64"
-        )}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: jqlBodyData,
-    }
-  );
-  return response;
-};
-
-const fetchLastDoneStatusUpdateFromJiraChangeLog = async (
-  email,
-  apiKey,
-  issueKey
-) => {
-  const response = await fetch(
-    "https://iglooapp.atlassian.net/rest/api/3/issue/" +
-      issueKey +
-      "/changelog",
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${Buffer.from(email + ":" + apiKey).toString(
-          "base64"
-        )}`,
-        Accept: "application/json",
-      },
-    }
-  );
-  const histories = await response.json();
-  let lastStatusDoneUpdate = null;
-  for (const history of histories.values) {
-    for (const item of history.items) {
-      if (item.fieldId === "status" && item.to === "10001") {
-        //10001 = Done
-        lastStatusDoneUpdate = history.created;
-      }
-    }
-  }
-  return lastStatusDoneUpdate;
-};
-
 async function main(email, apiKey) {
   try {
     const issues = [];
@@ -217,7 +148,7 @@ async function main(email, apiKey) {
 
     do {
       const jql = getJqlFromFile();
-      const response = await fetchIssuesFromJira(
+      const response = await fetchIssues(
         email,
         apiKey,
         bodyData.replace("{{startAt}}", index).replace("{{Jql}}", jql)
@@ -238,7 +169,7 @@ async function main(email, apiKey) {
         !issue["fields.resolutiondate"]
       ) {
         issue["fields.resolutiondate"] =
-          await fetchLastDoneStatusUpdateFromJiraChangeLog(
+          await fetchLastDoneStatusUpdateFromChangeLog(
             email,
             apiKey,
             issue["key"]
@@ -252,12 +183,12 @@ async function main(email, apiKey) {
       //get all available holidays
       let holidays = [];
       for (let i = startDate.getFullYear(); i <= endDate.getFullYear(); i++) {
-        holidays = holidays.concat(await wh.getHolidays("SG", i));
+        holidays = holidays.concat(await getHolidays("SG", i));
       }
 
       //calculate time to resolve
       issue["fields.timeToResolve"] = (
-        await wh.getWorkingManDays(
+        await getWorkingManDays(
           startDate,
           endDate,
           10, //business hour starts
@@ -270,12 +201,12 @@ async function main(email, apiKey) {
       ).toFixed(2);
 
       //get country for assignee, if cannot find, look for report country
-      const userCountry = await getUserCountryFromCSV();
+      const userCountries = await getUserCountryFromCSV();
       issue["fields.country"] =
-        userCountry[issue["fields.assignee.displayName"]];
+        userCountries[issue["fields.assignee.displayName"]];
       if (!issue["fields.country"]) {
         issue["fields.country"] =
-          userCountry[issue["fields.reporter.displayName"]];
+          userCountries[issue["fields.reporter.displayName"]];
       }
     }
 
