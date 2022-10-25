@@ -2,7 +2,8 @@
 // https://www.npmjs.com/package/node-fetch
 import fetch from "node-fetch";
 import csvWriter from "csv-writer";
-import * as wh from "./working-hours.js";
+import * as wh from "./lib/working-hours.js";
+import { getUserCountryFromCSV } from "./lib/user-country.js";
 import * as fs from "fs";
 import prompt from "prompt";
 
@@ -81,47 +82,10 @@ const checkStatus = (response) => {
   }
 };
 
-function CSVtoArray(text) {
-  var re_valid =
-    /^\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*(?:,\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*)*$/;
-  var re_value =
-    /(?!\s*$)\s*(?:'([^'\\]*(?:\\[\S\s][^'\\]*)*)'|"([^"\\]*(?:\\[\S\s][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
-  // Return NULL if input string is not well formed CSV string.
-  if (!re_valid.test(text)) return null;
-  var a = []; // Initialize array to receive values.
-  text.replace(
-    re_value, // "Walk" the string using replace with callback.
-    function (m0, m1, m2, m3) {
-      // Remove backslash from \' in single quoted values.
-      if (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
-      // Remove backslash from \" in double quoted values.
-      else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
-      else if (m3 !== undefined) a.push(m3);
-      return ""; // Return empty string.
-    }
-  );
-  // Handle special case of empty last value.
-  if (/,\s*$/.test(text)) a.push("");
-  return a;
-}
-
-const getUserCountryFromCSV = () => {
-  const csv = fs.readFileSync("./input/Assignee-Country-Dictionary.csv");
-  const rows = csv.toString().split("\r\n");
-  const users = {};
-
-  for (let i = 1; i < rows.length - 1; i++) {
-    const rowData = CSVtoArray(rows[i]);
-    users[rowData[0]] = rowData[1];
-  }
-
-  return users;
-};
-
 const getJqlFromFile = () => {
   const jql = fs.readFileSync("./input/jql.txt");
-  return jql.toString().replace(/(?:\r\n|\r|\n)/g, '');;
-}
+  return jql.toString().replace(/(?:\r\n|\r|\n)/g, "");
+};
 
 const getFieldValue = (issue, fieldName) => {
   const splitFieldName = fieldName.split(".");
@@ -252,7 +216,7 @@ async function main(email, apiKey) {
     let searchResult = [];
 
     do {
-      const jql = getJqlFromFile()
+      const jql = getJqlFromFile();
       const response = await fetchIssuesFromJira(
         email,
         apiKey,
@@ -266,8 +230,6 @@ async function main(email, apiKey) {
     } while (searchResult.issues.length > 0);
 
     console.log(`Total Records: ${issues.length}`);
-
-    const userCountry = getUserCountryFromCSV();
 
     for (const issue of issues) {
       //update resolution date from change log (Done Status) if the original resolution date is null
@@ -287,28 +249,28 @@ async function main(email, apiKey) {
       const startDate = new Date(issue["fields.created"]);
       const endDate = new Date(issue["fields.resolutiondate"]);
 
+      //get all available holidays
       let holidays = [];
-
       for (let i = startDate.getFullYear(); i <= endDate.getFullYear(); i++) {
         holidays = holidays.concat(await wh.getHolidays("SG", i));
       }
 
-      const manDays = (
+      //calculate time to resolve
+      issue["fields.timeToResolve"] = (
         await wh.getWorkingManDays(
           startDate,
           endDate,
-          10,  //business hour starts
-          13,  //lunch hour starts
-          14,  //lunch hour ends
-          19,  //business hour ends
+          10, //business hour starts
+          13, //lunch hour starts
+          14, //lunch hour ends
+          19, //business hour ends
           holidays,
           true
         )
       ).toFixed(2);
-      //console.log(`Total ${manDays} maydays`)
-      issue["fields.timeToResolve"] = manDays;
 
       //get country for assignee, if cannot find, look for report country
+      const userCountry = await getUserCountryFromCSV();
       issue["fields.country"] =
         userCountry[issue["fields.assignee.displayName"]];
       if (!issue["fields.country"]) {
@@ -318,7 +280,7 @@ async function main(email, apiKey) {
     }
 
     const csv = csvWriter.createObjectCsvWriter({
-      path: "output/demoD.csv",
+      path: "output/result.csv",
       header: fields,
     });
 
@@ -348,18 +310,17 @@ if (process.argv.length < 3) {
       return onErr(err);
     }
 
-    email = result.email
-    apiKey = result.api_key
+    email = result.email;
+    apiKey = result.api_key;
 
     console.log("Command-line input received:");
     console.log("  Email: " + result.email);
     console.log("  API Key: " + result.api_key);
 
     main(email, apiKey);
-  })
+  });
 } else {
-  email = process.argv[2]
-  apiKey = process.argv[3]
+  email = process.argv[2];
+  apiKey = process.argv[3];
   main(email, apiKey);
 }
-
